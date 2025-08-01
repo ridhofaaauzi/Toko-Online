@@ -1,22 +1,31 @@
-const jwt = require("../utils/jwt");
+// backend/middleware/auth.js
+const { verifyToken } = require("../utils/jwt");
 
-const authMiddleware = {
-  authenticateToken(req, res, next) {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-
-    if (!token) {
-      return res.status(401).json({ message: "Unathorized" });
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication token required",
+      });
     }
 
-    try {
-      const decoded = jwt.verifyToken(token);
-      req.user = decoded;
-      next();
-    } catch (error) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-  },
+    const token = authHeader.split(" ")[1];
+    const decoded = verifyToken(token);
+
+    req.user = {
+      id: decoded.id,
+      username: decoded.username,
+    };
+
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    let message = "Invalid token";
+    if (error.name === "TokenExpiredError") message = "Token expired";
+    res.status(401).json({ success: false, message });
+  }
 };
 
-module.exports = authMiddleware;
+module.exports = { authenticateToken };
