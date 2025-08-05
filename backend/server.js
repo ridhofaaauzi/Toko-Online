@@ -1,3 +1,4 @@
+const app = require("./app");
 const pool = require("./config/db");
 
 pool
@@ -11,9 +12,13 @@ pool
     process.exit(1);
   });
 
-const app = require("./app");
 const port = process.env.PORT || 5000;
 
-app.listen(port, () => {
-  console.log(`Server running on ort ${port}`);
+const server = app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+  server.close(() => process.exit(1));
 });

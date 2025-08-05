@@ -1,31 +1,28 @@
-// backend/middleware/auth.js
-const { verifyToken } = require("../utils/jwt");
+const jwt = require("jsonwebtoken");
 
-const authenticateToken = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
+const authenticateToken = (req, res, next) => {
+  const token =
+    req.headers["authorization"]?.split(" ")[1] ||
+    req.query.token ||
+    req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: "Akses ditolak. Token diperlukan.",
+    });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({
         success: false,
-        message: "Authentication token required",
+        error: "Token tidak valid atau kadaluarsa.",
       });
     }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = verifyToken(token);
-
-    req.user = {
-      id: decoded.id,
-      username: decoded.username,
-    };
-
+    req.user = user;
     next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    let message = "Invalid token";
-    if (error.name === "TokenExpiredError") message = "Token expired";
-    res.status(401).json({ success: false, message });
-  }
+  });
 };
 
 module.exports = { authenticateToken };

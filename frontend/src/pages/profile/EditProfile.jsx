@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../utils/api";
 import "./EditProfile.css";
+import Navbar from "../../components/navbar/Navbar";
 
 const EditProfile = () => {
   const [formData, setFormData] = useState({
@@ -64,48 +65,51 @@ const EditProfile = () => {
   };
 
   return (
-    <div className="edit-profile-container">
-      <h2>Edit Profile</h2>
+    <>
+      <Navbar />
+      <div className="edit-profile-container">
+        <h2>Edit Profile</h2>
 
-      {success && <div className="success-message">{success}</div>}
-      {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+        {error && <div className="error-message">{error}</div>}
 
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Username</label>
-          <input
-            type="text"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
-        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        <div className="form-actions">
-          <button type="submit" className="save-button">
-            Save Changes
-          </button>
-          <button
-            type="button"
-            className="cancel-button"
-            onClick={() => navigate("/profile")}>
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className="form-actions">
+            <button type="submit" className="save-button">
+              Save Changes
+            </button>
+            <button
+              type="button"
+              className="cancel-button"
+              onClick={() => navigate("/profile")}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
   );
 };
 

@@ -20,6 +20,7 @@ const Profile = () => {
         }
 
         const response = await api.get("/auth/profile");
+        console.log("Profile response:", response);
         if (response.data?.user) {
           setUser(response.data.user);
         } else {
@@ -91,7 +92,6 @@ const Profile = () => {
             <div className="detail-item">
               <span className="detail-label">Member Since:</span>
               <span className="detail-value">
-                {" "}
                 {new Date(user.created_at).toLocaleDateString()}
               </span>
             </div>

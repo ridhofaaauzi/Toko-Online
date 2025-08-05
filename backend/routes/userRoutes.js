@@ -1,4 +1,3 @@
-// backend/routes/userRoutes.js
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/auth/authController");
@@ -10,7 +9,7 @@ router.post("/login", authController.login);
 
 router
   .route("/profile")
-  .get(authenticateToken, userController.getMyProfile)
+  .get(authenticateToken, authController.getProfile)
   .put(authenticateToken, userController.updateMyProfile);
 
 module.exports = router;

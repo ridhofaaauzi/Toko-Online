@@ -9,11 +9,9 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check login status
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
 
-    // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
@@ -47,18 +45,8 @@ const Navbar = () => {
             </Link>
           </li>
           <li className="nav-item">
-            <Link to="/about" className="nav-links">
-              About
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/services" className="nav-links">
-              Services
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/contact" className="nav-links">
-              Contact
+            <Link to="/product" className="nav-links">
+              Product
             </Link>
           </li>
         </ul>
@@ -74,6 +62,9 @@ const Navbar = () => {
               </button>
               {showDropdown && (
                 <div className="dropdown-menu">
+                  <Link to="/dashboard" className="dropdown-item">
+                    Dashboard
+                  </Link>
                   <Link
                     to="/profile"
                     className="dropdown-item"
