@@ -62,7 +62,10 @@ const Navbar = () => {
               </button>
               {showDropdown && (
                 <div className="dropdown-menu">
-                  <Link to="/dashboard" className="dropdown-item">
+                  <Link
+                    to="/dashboard"
+                    className="dropdown-item"
+                    onClick={() => setShowDropdown(false)}>
                     Dashboard
                   </Link>
                   <Link

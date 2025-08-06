@@ -41,8 +41,11 @@ const CreateProduct = () => {
     setIsSubmitting(true);
     setError(null);
 
+    const token = localStorage.getItem("token");
+
     try {
       let image_url = "";
+
       if (formData.image) {
         const uploadFormData = new FormData();
         uploadFormData.append("image", formData.image);
@@ -53,6 +56,7 @@ const CreateProduct = () => {
           {
             headers: {
               "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${token}`,
             },
           }
         );
@@ -66,15 +70,12 @@ const CreateProduct = () => {
         image_url,
       };
 
-      const response = await axios.post(
-        "http://localhost:5000/api/products",
-        productData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await axios.post("http://localhost:5000/api/products", productData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       navigate("/dashboard/products");
     } catch (err) {

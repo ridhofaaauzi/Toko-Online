@@ -8,20 +8,31 @@ const ProductList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/products");
-        setProducts(response.data);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
-        setError("Failed to load products. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get("http://localhost:5000/api/products");
 
+      const productList = response.data.product;
+
+      if (Array.isArray(productList)) {
+        setProducts(productList);
+        setError(null);
+      } else {
+        throw new Error("Invalid data format received");
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Failed to load products. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProducts();
   }, []);
 

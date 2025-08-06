@@ -14,13 +14,12 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
-        const response = await api.get("/auth/profile");
-        console.log("Profile response:", response);
+        const response = await api.get("/auth/profile", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (response.data?.user) {
           setUser(response.data.user);
         } else {
@@ -32,11 +31,6 @@ const Profile = () => {
           error.message ||
           "Failed to load profile";
         setError(errorMessage);
-
-        if (error.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }
       } finally {
         setLoading(false);
       }

@@ -5,13 +5,18 @@ const fs = require("fs");
 exports.getProducts = async (req, res) => {
   try {
     const products = await Product.getAll();
+
     res.status(200).json({
       success: true,
       message: "Get All Product successfully",
-      product: products,
+      product: products || [],
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in getProducts:", err);
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan saat mengambil produk.",
+    });
   }
 };
 
@@ -51,57 +56,52 @@ exports.createProduct = async (req, res) => {
 };
 
 exports.updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const { name, description, price } = req.body;
+
   try {
-    const { name, description, price, image_url } = req.body;
+    const product = await Product.getById(id);
 
-    // 1. Ambil data produk lama
-    const existingProduct = await Product.getById(req.params.id);
-    if (!existingProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    if (!product) {
+      return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
-    // 2. Cek apakah ada image_url baru DAN image lama ada
-    if (
-      image_url &&
-      existingProduct.image_url &&
-      image_url !== existingProduct.image_url
-    ) {
-      const oldImagePath = path.join(
-        __dirname,
-        "../../public/",
-        existingProduct.image_url
-      );
+    const oldImage = product.image_url;
 
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-        console.log("Gambar lama dihapus:", oldImagePath);
-      } else {
-        console.log("Gambar lama tidak ditemukan:", oldImagePath);
-      }
-    }
-
-    // 3. Update data produk
-    const updated = await Product.update(req.params.id, {
+    let updatedData = {
       name,
       description,
       price,
-      image_url,
-    });
+    };
+
+    if (req.body.image_url) {
+      const newImage = req.body.image_url.replace("/public/", "");
+
+      if (oldImage && oldImage !== newImage) {
+        const oldImagePath = path.join(__dirname, "../../public", oldImage);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      updatedData.image_url = newImage;
+    }
+
+    await Product.update(id, updatedData);
 
     res.status(200).json({
       success: true,
       message: "Product updated successfully",
-      product: updated,
+      product: updatedData,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 };
 
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.getById(req.params.id);
-    console.log("Product to delete:", product);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -113,7 +113,6 @@ exports.deleteProduct = async (req, res) => {
         "../../public/",
         product.image_url
       );
-      console.log("Trying to delete image:", imagePath);
 
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);

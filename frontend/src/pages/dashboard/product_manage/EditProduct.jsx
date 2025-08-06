@@ -19,14 +19,21 @@ const EditProduct = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/products/${id}`
+          `http://localhost:5000/api/products/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
-        const product = response.data.product; // ✅ perbaikan di sini
 
+        const product = response.data.product;
         const imageUrl = product.image_url
           ? `http://localhost:5000/public${product.image_url}`
           : "";
@@ -45,14 +52,20 @@ const EditProduct = () => {
         setPreviewImage(imageUrl);
       } catch (err) {
         console.error("Error fetching product:", err);
-        setError("Failed to load product data");
+
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        } else {
+          setError("Failed to load product data");
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, token, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,10 +84,9 @@ const EditProduct = () => {
       setFormData((prev) => ({
         ...prev,
         image: file,
-        existingImageUrl: "", // Reset existing image jika upload baru
+        existingImageUrl: "",
       }));
 
-      // Preview gambar baru
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -95,7 +107,6 @@ const EditProduct = () => {
         description: formData.description,
       };
 
-      // Jika ada gambar baru
       if (formData.image) {
         const uploadFormData = new FormData();
         uploadFormData.append("image", formData.image);
@@ -103,16 +114,26 @@ const EditProduct = () => {
         const uploadResponse = await axios.post(
           "http://localhost:5000/api/upload",
           uploadFormData,
-          { headers: { "Content-Type": "multipart/form-data" } }
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         productData.image_url = uploadResponse.data.imageUrl;
       }
 
-      // Kirim permintaan update
       const response = await axios.put(
         `http://localhost:5000/api/products/${id}`,
-        productData
+        productData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (response.data.success) {
@@ -122,6 +143,13 @@ const EditProduct = () => {
       }
     } catch (err) {
       console.error("Update error:", err);
+
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
       setError(err.response?.data?.error || err.message || "Update failed");
     } finally {
       setIsSubmitting(false);

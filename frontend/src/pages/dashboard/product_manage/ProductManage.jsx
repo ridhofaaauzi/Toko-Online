@@ -13,7 +13,13 @@ const ProductManage = () => {
   const getProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:5000/api/products");
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get("http://localhost:5000/api/products", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const productList = response.data.product;
 
@@ -24,7 +30,6 @@ const ProductManage = () => {
         throw new Error("Invalid data format received");
       }
     } catch (err) {
-      console.error("Failed to fetch products:", err);
       setError(
         err.response?.data?.error ||
           err.response?.data?.message ||
@@ -43,14 +48,20 @@ const ProductManage = () => {
     if (!window.confirm("Delete this product and its image permanently?")) {
       return;
     }
+    const token = localStorage.getItem("token");
 
     try {
       const response = await axios.delete(
-        `http://localhost:5000/api/products/${id}`
+        `http://localhost:5000/api/products/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (response.data.success) {
-        await getProducts(); // Refresh list
+        await getProducts();
         alert("Product deleted successfully");
       } else {
         throw new Error(response.data.error || "Delete failed");

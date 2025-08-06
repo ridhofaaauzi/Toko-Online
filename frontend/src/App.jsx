@@ -8,6 +8,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import ProductManage from "./pages/dashboard/product_manage/ProductManage";
 import CreateProduct from "./pages/dashboard/product_manage/CreateProduct";
 import EditProduct from "./pages/dashboard/product_manage/EditProduct";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
   return (
@@ -16,13 +17,48 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<AuthForm isLogin={true} />} />
         <Route path="/register" element={<AuthForm isLogin={false} />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/product" element={<ProductList />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/products" element={<ProductManage />} />
-        <Route path="/dashboard/product/create" element={<CreateProduct />} />
-        <Route path="/dashboard/product/edit/:id" element={<EditProduct />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/products"
+          element={
+            <ProtectedRoute>
+              <ProductManage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/product/create"
+          element={
+            <ProtectedRoute>
+              <CreateProduct />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/product/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditProduct />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );
