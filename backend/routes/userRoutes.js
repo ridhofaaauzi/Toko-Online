@@ -6,6 +6,7 @@ const { authenticateToken } = require("../middleware/auth");
 
 router.post("/register", authController.register);
 router.post("/login", authController.login);
+router.post("/google", authController.googleLogin);
 
 router
   .route("/profile")

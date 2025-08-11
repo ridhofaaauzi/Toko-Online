@@ -2,6 +2,8 @@ const pool = require("../../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("../../utils/jwt");
 const validator = require("validator");
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const authController = {
   async register(req, res) {
@@ -72,7 +74,6 @@ const authController = {
         token,
       });
     } catch (error) {
-      console.error("Registration Error:", error);
       return res.status(500).json({
         success: false,
         message: "Registration failed",
@@ -125,8 +126,55 @@ const authController = {
         token,
       });
     } catch (error) {
-      console.error("Login error:", error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
+  async googleLogin(req, res) {
+    try {
+      const { credential } = req.body;
+      if (!credential) {
+        return res.status(400).json({ message: "Credential is required" });
+      }
+
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+
+      const [existingUser] = await pool.execute(
+        "SELECT * FROM users WHERE email = ?",
+        [payload.email]
+      );
+
+      const [rows] = await pool.execute("SELECT * FROM users WHERE email = ?", [
+        payload.email,
+      ]);
+
+      const dummyPassword = await bcrypt.hash(Date.now().toString(), 10);
+
+      let user = rows[0];
+
+      if (!user) {
+        const [result] = await pool.execute(
+          "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+          [payload.name, payload.email, dummyPassword]
+        );
+
+        const [newUser] = await pool.execute(
+          "SELECT * FROM users WHERE id = ?",
+          [result.insertId]
+        );
+
+        user = newUser[0];
+      }
+
+      const token = jwt.generateToken({ id: user.id });
+      res.json({ token, user });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
     }
   },
 
@@ -149,7 +197,6 @@ const authController = {
         user: users[0],
       });
     } catch (error) {
-      console.error("Get profile error:", error);
       return res.status(500).json({
         success: false,
         message: "Failed to load profile",

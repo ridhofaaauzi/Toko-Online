@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../../utils/api";
 import "./AuthForm.css";
+import { GoogleLogin } from "@react-oauth/google";
+import axios from "axios";
 
 const AuthForm = ({ isLogin = false }) => {
   const [formData, setFormData] = useState({
@@ -213,6 +215,34 @@ const AuthForm = ({ isLogin = false }) => {
           <button type="submit" className="auth-button" disabled={isSubmitting}>
             {isSubmitting ? "Processing..." : isLogin ? "Login" : "Register"}
           </button>
+
+          {isLogin && (
+            <GoogleLogin
+              onSuccess={async (response) => {
+                try {
+                  const credential = response.credential;
+                  if (!credential) {
+                    console.error("Credential kosong!");
+                    return;
+                  }
+
+                  const { data } = await axios.post(
+                    "http://localhost:5000/api/auth/google",
+                    { credential }
+                  );
+
+                  localStorage.setItem("token", data.token);
+
+                  navigate("/profile");
+                } catch (error) {
+                  console.error("Google login failed:", error);
+                }
+              }}
+              onError={() => {
+                console.log("Login Failed");
+              }}
+            />
+          )}
         </form>
       </div>
     </div>
