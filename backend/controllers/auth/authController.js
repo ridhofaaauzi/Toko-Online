@@ -132,49 +132,59 @@ const authController = {
 
   async googleLogin(req, res) {
     try {
-      const { credential } = req.body;
-      if (!credential) {
-        return res.status(400).json({ message: "Credential is required" });
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: "Google token is required" });
       }
 
       const ticket = await client.verifyIdToken({
-        idToken: credential,
+        idToken: token,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
 
       const payload = ticket.getPayload();
-
-      const [existingUser] = await pool.execute(
-        "SELECT * FROM users WHERE email = ?",
-        [payload.email]
-      );
+      const email = payload.email;
+      const name = payload.name;
 
       const [rows] = await pool.execute("SELECT * FROM users WHERE email = ?", [
-        payload.email,
+        email,
       ]);
+      let user;
 
-      const dummyPassword = await bcrypt.hash(Date.now().toString(), 10);
+      if (rows.length > 0) {
+        user = rows[0];
+      } else {
+        const randomPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-      let user = rows[0];
-
-      if (!user) {
         const [result] = await pool.execute(
-          "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-          [payload.name, payload.email, dummyPassword]
+          "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+          [name, email, hashedPassword]
         );
 
-        const [newUser] = await pool.execute(
+        const [newUserRows] = await pool.execute(
           "SELECT * FROM users WHERE id = ?",
           [result.insertId]
         );
-
-        user = newUser[0];
+        user = newUserRows[0];
       }
 
-      const token = jwt.generateToken({ id: user.id });
-      res.json({ token, user });
-    } catch (err) {
-      res.status(500).json({ message: "Internal server error" });
+      const jwtToken = jwt.generateToken({ id: user.id, email: user.email });
+
+      res.json({
+        message: "Login berhasil",
+        token: jwtToken,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+      });
+    } catch (error) {
+      console.error("Google login error:", error);
+      res
+        .status(500)
+        .json({ message: "Google login failed", error: error.message });
     }
   },
 

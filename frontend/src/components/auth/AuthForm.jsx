@@ -228,7 +228,7 @@ const AuthForm = ({ isLogin = false }) => {
 
                   const { data } = await axios.post(
                     "http://localhost:5000/api/auth/google",
-                    { credential }
+                    { token: response.credential }
                   );
 
                   localStorage.setItem("token", data.token);
