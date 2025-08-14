@@ -4,6 +4,17 @@ const jwt = require("../../utils/jwt");
 const validator = require("validator");
 const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 const authController = {
   async register(req, res) {
@@ -185,6 +196,99 @@ const authController = {
       res
         .status(500)
         .json({ message: "Google login failed", error: error.message });
+    }
+  },
+
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email || !validator.isEmail(email)) {
+        return res.status(400).json({
+          message: "Email Not Active",
+        });
+      }
+
+      const [users] = await pool.execute(
+        "SELECT * FROM users WHERE email = ? ",
+        [email]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({
+          message: "Email Not Registered",
+        });
+      }
+
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetExpiry = new Date(Date.now() + 3600000);
+
+      await pool.execute(
+        "UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?",
+        [resetToken, resetExpiry, email]
+      );
+
+      const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+
+      await transporter.sendMail({
+        from: `"Support Toko Online" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Reset Password",
+        html: `
+    <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; background:#f9f9f9; border-radius:10px;">
+      <h2 style="color:#333;">Reset Password</h2>
+      <p>Halo, silakan klik tombol di bawah ini untuk mereset password kamu:</p>
+      <a href="${resetUrl}" style="display:inline-block; padding:10px 20px; margin-top:20px; background:#4CAF50; color:#fff; text-decoration:none; border-radius:5px;">Reset Password</a>
+      <p style="font-size:12px; color:#888; margin-top:20px;">Jika kamu tidak meminta reset password, abaikan email ini.</p>
+    </div>
+  `,
+      });
+
+      return res.json({
+        message: "Email Reset Password telah dikirim",
+      });
+    } catch (error) {
+      console.error("Email error:", error);
+      return res
+        .status(500)
+        .json({ message: "Gagal mengirim email reset password" });
+    }
+  },
+
+  async resetPassword(req, res) {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+
+      if (!password || password.length < 6) {
+        return res.status(400).json({
+          message: "Password Minimal 6 Karakter",
+        });
+      }
+
+      const [users] = await pool.execute(
+        "SELECT * FROM users WHERE reset_token = ? AND reset_token_expiry > NOW()",
+        [token]
+      );
+
+      if (users.length === 0) {
+        return res.status(400).json({
+          message: "Token Tidak Valid atau sudah kadaluarsa",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      await pool.execute(
+        "UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?",
+        [hashedPassword, users[0].id]
+      );
+
+      return res.status(200).json({
+        message: "Password Berhasil Direset",
+      });
+    } catch (error) {
+      return res.status(500).json({ message: "Gagal mereset password" });
     }
   },
 

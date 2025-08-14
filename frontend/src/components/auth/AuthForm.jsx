@@ -212,6 +212,14 @@ const AuthForm = ({ isLogin = false }) => {
             )}
           </div>
 
+          {isLogin && (
+            <div className="extra-links">
+              <Link to="/forgot-password" className="forgot-password">
+                Forgot Password?
+              </Link>
+            </div>
+          )}
+
           <button type="submit" className="auth-button" disabled={isSubmitting}>
             {isSubmitting ? "Processing..." : isLogin ? "Login" : "Register"}
           </button>

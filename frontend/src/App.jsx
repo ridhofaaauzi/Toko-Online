@@ -9,6 +9,8 @@ import ProductManage from "./pages/dashboard/product_manage/ProductManage";
 import CreateProduct from "./pages/dashboard/product_manage/CreateProduct";
 import EditProduct from "./pages/dashboard/product_manage/EditProduct";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import ResetPassword from "./components/auth/ResetPassword";
 
 function App() {
   return (
@@ -59,6 +61,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </Router>
   );
