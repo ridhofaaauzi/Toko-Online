@@ -3,12 +3,26 @@ const router = express.Router();
 const authController = require("../controllers/auth/authController");
 const userController = require("../controllers/user/userController");
 const { authenticateToken } = require("../middleware/auth");
+const {
+  loginLimiter,
+  registerLimiter,
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
+} = require("../middleware/rateLimiter");
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+router.post("/register", registerLimiter, authController.register);
+router.post("/login", loginLimiter, authController.login);
 router.post("/google", authController.googleLogin);
-router.post("/forgot-password", authController.forgotPassword);
-router.post("/reset-password/:token", authController.resetPassword);
+router.post(
+  "/forgot-password",
+  forgotPasswordLimiter,
+  authController.forgotPassword
+);
+router.post(
+  "/reset-password/:token",
+  resetPasswordLimiter,
+  authController.resetPassword
+);
 
 router
   .route("/profile")

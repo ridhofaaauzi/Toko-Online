@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../../utils/api";
 import "./AuthForm.css";
@@ -20,16 +20,25 @@ const AuthForm = ({ isLogin = false }) => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
   const navigate = useNavigate();
 
-  const validateForm = () => {
-    const newErrors = {
-      username: "",
-      email: "",
-      password: "",
-      general: "",
-    };
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else {
+      setDisabled(false);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
+  const validateForm = () => {
+    const newErrors = { username: "", email: "", password: "", general: "" };
     let isValid = true;
 
     if (!formData.email) {
@@ -103,11 +112,27 @@ const AuthForm = ({ isLogin = false }) => {
       });
 
       if (error.response) {
-        if (error.response.status === 500) {
+        if (error.response.status === 429) {
+          const retryAfter = parseInt(
+            error.response.headers["retry-after"] || "60",
+            10
+          );
+          setDisabled(true);
+          setCountdown(retryAfter);
+          setErrors({
+            ...errors,
+            general: `Too many attempts. Try again in ${retryAfter} second.`,
+          });
+        } else if (error.response.status === 500) {
           setErrors({
             ...errors,
             general:
               "Server error. Please check the console for details and try again later.",
+          });
+        } else if (error.response.status === 401) {
+          setErrors({
+            ...errors,
+            general: error.response.data?.message || "Email or password wrong.",
           });
         } else if (error.response.data?.errors) {
           setErrors({
@@ -220,8 +245,17 @@ const AuthForm = ({ isLogin = false }) => {
             </div>
           )}
 
-          <button type="submit" className="auth-button" disabled={isSubmitting}>
-            {isSubmitting ? "Processing..." : isLogin ? "Login" : "Register"}
+          <button
+            type="submit"
+            className="auth-button"
+            disabled={isSubmitting || disabled}>
+            {disabled
+              ? `Wait ${countdown}s`
+              : isSubmitting
+              ? "Processing..."
+              : isLogin
+              ? "Login"
+              : "Register"}
           </button>
 
           {isLogin && (
@@ -240,7 +274,6 @@ const AuthForm = ({ isLogin = false }) => {
                   );
 
                   localStorage.setItem("token", data.token);
-
                   navigate("/profile");
                 } catch (error) {
                   console.error("Google login failed:", error);
