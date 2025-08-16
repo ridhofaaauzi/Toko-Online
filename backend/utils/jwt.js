@@ -1,20 +1,14 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
+exports.generateAccessToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15m" });
+};
 
-module.exports = {
-  generateToken: (payload) => {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-  },
+exports.generateRefreshToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+};
 
-  verifyToken: (token) => {
-    try {
-      return jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-      console.error("JWT verification error:", error);
-      throw error;
-    }
-  },
+exports.verifyRefreshToken = (token) => {
+  return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 };

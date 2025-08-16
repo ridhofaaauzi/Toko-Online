@@ -4,6 +4,7 @@ import api from "../../utils/api";
 import "./AuthForm.css";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
+import { handleError } from "../../utils/handleError";
 
 const AuthForm = ({ isLogin = false }) => {
   const [formData, setFormData] = useState({
@@ -28,9 +29,7 @@ const AuthForm = ({ isLogin = false }) => {
   useEffect(() => {
     let timer;
     if (countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
+      timer = setInterval(() => setCountdown((prev) => prev - 1), 1000);
     } else {
       setDisabled(false);
     }
@@ -76,89 +75,34 @@ const AuthForm = ({ isLogin = false }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name] || errors.general) {
-      setErrors({
-        ...errors,
-        [name]: "",
-        general: "",
-      });
+      setErrors((prev) => ({ ...prev, [name]: "", general: "" }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsSubmitting(true);
 
     try {
       const endpoint = isLogin ? "/auth/login" : "/auth/register";
-
       const { data } = await api.post(endpoint, formData);
 
-      localStorage.setItem("token", data.token);
-      navigate("/profile");
-    } catch (error) {
-      console.error("AUTH ERROR DETAILS:", {
-        message: error.message,
-        response: error.response,
-        config: error.config,
-        stack: error.stack,
-      });
-
-      if (error.response) {
-        if (error.response.status === 429) {
-          const retryAfter = parseInt(
-            error.response.headers["retry-after"] || "60",
-            10
-          );
-          setDisabled(true);
-          setCountdown(retryAfter);
-          setErrors({
-            ...errors,
-            general: `Too many attempts. Try again in ${retryAfter} second.`,
-          });
-        } else if (error.response.status === 500) {
-          setErrors({
-            ...errors,
-            general:
-              "Server error. Please check the console for details and try again later.",
-          });
-        } else if (error.response.status === 401) {
-          setErrors({
-            ...errors,
-            general: error.response.data?.message || "Email or password wrong.",
-          });
-        } else if (error.response.data?.errors) {
-          setErrors({
-            ...errors,
-            ...error.response.data.errors,
-            general: error.response.data.message,
-          });
-        } else {
-          setErrors({
-            ...errors,
-            general:
-              error.response.data?.message ||
-              `Registration failed (Status: ${error.response.status})`,
-          });
-        }
-      } else if (error.request) {
-        setErrors({
-          ...errors,
-          general: "No response from server. Check your network connection.",
-        });
+      if (data.accessToken && data.refreshToken) {
+        localStorage.setItem("accessToken", data.accessToken);
+        localStorage.setItem("refreshToken", data.refreshToken);
+        navigate("/profile", { replace: true });
       } else {
-        setErrors({
-          ...errors,
-          general: error.message || "An unexpected error occurred",
-        });
+        setErrors((prev) => ({
+          ...prev,
+          general: "Login failed: accessToken or refreshToken missing",
+        }));
       }
+    } catch (error) {
+      handleError(error, setErrors);
     } finally {
       setIsSubmitting(false);
     }
@@ -174,80 +118,66 @@ const AuthForm = ({ isLogin = false }) => {
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
             <div className="form-group">
-              <label className="form-label">Username</label>
+              <label>Username</label>
               <input
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className={`form-input ${errors.username ? "input-error" : ""}`}
+                className={errors.username ? "input-error" : ""}
                 placeholder="Input Username"
               />
-              {errors.username && (
-                <span className="error-message">{errors.username}</span>
-              )}
+              {errors.username && <span>{errors.username}</span>}
             </div>
           )}
 
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label>Email</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`form-input ${errors.email ? "input-error" : ""}`}
+              className={errors.email ? "input-error" : ""}
               placeholder="Input Email"
             />
-            {errors.email && (
-              <span className="error-message">{errors.email}</span>
-            )}
+            {errors.email && <span>{errors.email}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label>Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={`form-input ${errors.password ? "input-error" : ""}`}
+              className={errors.password ? "input-error" : ""}
               placeholder="Input Password"
             />
-            {errors.password && (
-              <span className="error-message">{errors.password}</span>
-            )}
+            {errors.password && <span>{errors.password}</span>}
           </div>
 
           <div className="auth-switch">
             {isLogin ? (
               <p>
-                Don't have an account?{" "}
-                <Link to="/register" className="auth-link">
-                  Register
-                </Link>
+                Don't have an account? <Link to="/register">Register</Link>
               </p>
             ) : (
               <p>
-                Already have an account?{" "}
-                <Link to="/login" className="auth-link">
-                  Login
-                </Link>
+                Already have an account? <Link to="/login">Login</Link>
               </p>
             )}
           </div>
 
           {isLogin && (
             <div className="extra-links">
-              <Link to="/forgot-password" className="forgot-password">
-                Forgot Password?
-              </Link>
+              <Link to="/forgot-password">Forgot Password?</Link>
             </div>
           )}
 
           <button
-            type="submit"
             className="auth-button"
+            type="submit"
             disabled={isSubmitting || disabled}>
             {disabled
               ? `Wait ${countdown}s`
@@ -262,26 +192,18 @@ const AuthForm = ({ isLogin = false }) => {
             <GoogleLogin
               onSuccess={async (response) => {
                 try {
-                  const credential = response.credential;
-                  if (!credential) {
-                    console.error("Credential kosong!");
-                    return;
-                  }
-
                   const { data } = await axios.post(
                     "http://localhost:5000/api/auth/google",
-                    { token: response.credential }
+                    { token: response.credential },
+                    { withCredentials: true }
                   );
-
-                  localStorage.setItem("token", data.token);
+                  localStorage.setItem("accessToken", data.accessToken);
                   navigate("/profile");
                 } catch (error) {
                   console.error("Google login failed:", error);
                 }
               }}
-              onError={() => {
-                console.log("Login Failed");
-              }}
+              onError={() => console.log("Login Failed")}
             />
           )}
         </form>

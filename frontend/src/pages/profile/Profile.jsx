@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import api from "../../utils/api";
 import { Link, useNavigate } from "react-router-dom";
+import api from "../../utils/api";
 import Navbar from "../../components/navbar/Navbar";
 import "./Profile.css";
 
@@ -13,24 +13,26 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await api.get("/auth/profile", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get("/auth/profile");
+
         if (response.data?.user) {
           setUser(response.data.user);
         } else {
           throw new Error("Invalid user data structure");
         }
-      } catch (error) {
+      } catch (err) {
         const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
+          err.response?.data?.message ||
+          err.message ||
           "Failed to load profile";
-        setError(errorMessage);
+
+        if (err.response?.status === 401) {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          navigate("/login", { replace: true });
+        } else {
+          setError(errorMessage);
+        }
       } finally {
         setLoading(false);
       }

@@ -3,9 +3,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("../../utils/jwt");
 const validator = require("validator");
 const { OAuth2Client } = require("google-auth-library");
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const redisClient = require("../../config/redisClient");
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -127,14 +128,20 @@ const authController = {
         });
       }
 
-      const token = jwt.generateToken({ id: user.id });
+      const accessToken = jwt.generateAccessToken({ id: user.id });
+      const refreshToken = jwt.generateRefreshToken({ id: user.id });
+
+      await redisClient.set(`refreshToken:${user.id}`, refreshToken, {
+        EX: 7 * 24 * 60 * 60,
+      });
 
       delete user.password;
 
       return res.json({
         message: "Login successful",
         user,
-        token,
+        accessToken,
+        refreshToken,
       });
     } catch (error) {
       return res.status(500).json({ message: "Internal server error" });
@@ -148,7 +155,7 @@ const authController = {
         return res.status(400).json({ message: "Google token is required" });
       }
 
-      const ticket = await client.verifyIdToken({
+      const ticket = await googleClient.verifyIdToken({
         idToken: token,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
@@ -160,6 +167,7 @@ const authController = {
       const [rows] = await pool.execute("SELECT * FROM users WHERE email = ?", [
         email,
       ]);
+
       let user;
 
       if (rows.length > 0) {
@@ -180,16 +188,20 @@ const authController = {
         user = newUserRows[0];
       }
 
-      const jwtToken = jwt.generateToken({ id: user.id, email: user.email });
+      const accessToken = jwt.generateAccessToken({ id: user.id });
+      const refreshToken = jwt.generateRefreshToken({ id: user.id });
+
+      await redisClient.set(`refreshToken:${user.id}`, refreshToken, {
+        EX: 7 * 24 * 60 * 60,
+      });
+
+      delete user.password;
 
       res.json({
-        message: "Login berhasil",
-        token: jwtToken,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
+        message: "Login successfully",
+        user,
+        accessToken,
+        refreshToken,
       });
     } catch (error) {
       console.error("Google login error:", error);
@@ -289,6 +301,45 @@ const authController = {
       });
     } catch (error) {
       return res.status(500).json({ message: "Gagal mereset password" });
+    }
+  },
+
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        return res.status(401).json({
+          message: "No Token Provided",
+        });
+      }
+
+      const decoded = jwt.verifyRefreshToken(refreshToken);
+
+      const savedToken = await redisClient.get(`refreshToken:${decoded.id}`);
+      if (savedToken !== refreshToken) {
+        return res.status(403).json({
+          message: "Invalid Refresh Token",
+        });
+      }
+
+      const newAccessToken = jwt.generateAccessToken({
+        id: decoded.id,
+        email: decoded.email,
+      });
+
+      return res.json({ accessToken: newAccessToken });
+    } catch (error) {
+      return res.status(403).json({ message: "Token invalid" });
+    }
+  },
+
+  async logout(req, res) {
+    try {
+      const userId = req.user.id;
+      await redisClient.del(`refreshToken:${userId}`);
+      res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Logout error" });
     }
   },
 

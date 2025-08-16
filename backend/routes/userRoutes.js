@@ -23,6 +23,8 @@ router.post(
   resetPasswordLimiter,
   authController.resetPassword
 );
+router.post("/refresh-token", authController.refreshToken);
+router.post("/logout", authenticateToken, authController.logout);
 
 router
   .route("/profile")
