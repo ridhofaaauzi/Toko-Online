@@ -13,7 +13,7 @@ const ProductManage = () => {
   const getProducts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
 
       const response = await axios.get("http://localhost:5000/api/products", {
         headers: {
@@ -48,7 +48,7 @@ const ProductManage = () => {
     if (!window.confirm("Delete this product and its image permanently?")) {
       return;
     }
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
 
     try {
       const response = await axios.delete(

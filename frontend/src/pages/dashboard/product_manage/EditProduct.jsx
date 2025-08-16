@@ -19,7 +19,7 @@ const EditProduct = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("accessToken");
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -54,7 +54,7 @@ const EditProduct = () => {
         console.error("Error fetching product:", err);
 
         if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("token");
+          localStorage.removeItem("accessToken");
           navigate("/login");
         } else {
           setError("Failed to load product data");

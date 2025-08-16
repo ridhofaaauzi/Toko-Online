@@ -41,7 +41,7 @@ const CreateProduct = () => {
     setIsSubmitting(true);
     setError(null);
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
 
     try {
       let image_url = "";

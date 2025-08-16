@@ -4,6 +4,7 @@ const productController = require("../controllers/product/productController");
 const { authenticateToken } = require("../middleware/auth");
 
 router.get("/", productController.getProducts);
+router.get("/:id/qrcode", productController.getProductQRCode);
 router.get("/:id", authenticateToken, productController.getProduct);
 router.post("/", authenticateToken, productController.createProduct);
 router.put("/:id", authenticateToken, productController.updateProduct);

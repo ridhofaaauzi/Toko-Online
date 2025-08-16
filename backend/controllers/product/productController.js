@@ -1,6 +1,7 @@
 const Product = require("../../models/product");
 const path = require("path");
 const fs = require("fs");
+const QRCode = require("qrcode");
 
 exports.getProducts = async (req, res) => {
   try {
@@ -130,5 +131,28 @@ exports.deleteProduct = async (req, res) => {
   } catch (err) {
     console.error("Delete error:", err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getProductQRCode = async (req, res) => {
+  try {
+    const product = await Product.getById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product Not Found",
+      });
+    }
+
+    const productURL = `http://localhost:5173/products/${product.id}`;
+    const qrCodeDataURL = await QRCode.toDataURL(productURL);
+
+    res.status(200).json({
+      success: 200,
+      qrCode: qrCodeDataURL,
+    });
+  } catch (error) {
+    console.error("QR Code generation error:", err);
+    res.status(500).json({ message: "Failed to generate QR Code" });
   }
 };
