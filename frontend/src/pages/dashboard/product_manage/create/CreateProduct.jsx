@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../../../components/sidebar/Sidebar";
+import Sidebar from "../../../../components/sidebar/Sidebar";
+import { createProduct } from "../../../../services/ProductService";
 import "./createProduct.css";
 
 const CreateProduct = () => {
@@ -11,29 +11,25 @@ const CreateProduct = () => {
     description: "",
     image: null,
   });
+  const [previewImage, setPreviewImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, image: file }));
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    setFormData((prev) => ({ ...prev, image: file }));
+
+    const reader = new FileReader();
+    reader.onloadend = () => setPreviewImage(reader.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -41,46 +37,12 @@ const CreateProduct = () => {
     setIsSubmitting(true);
     setError(null);
 
-    const token = localStorage.getItem("accessToken");
-
     try {
-      let image_url = "";
-
-      if (formData.image) {
-        const uploadFormData = new FormData();
-        uploadFormData.append("image", formData.image);
-
-        const uploadResponse = await axios.post(
-          "http://localhost:5000/api/upload",
-          uploadFormData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        image_url = uploadResponse.data.imageUrl;
-      }
-
-      const productData = {
-        name: formData.name,
-        price: formData.price,
-        description: formData.description,
-        image_url,
-      };
-
-      await axios.post("http://localhost:5000/api/products", productData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      await createProduct(formData);
       navigate("/dashboard/products");
     } catch (err) {
-      console.error("Error:", err);
-      setError(err.response?.data?.error || "Failed to create product");
+      console.error(err);
+      setError(err.message || "Failed to create product");
     } finally {
       setIsSubmitting(false);
     }
@@ -135,11 +97,7 @@ const CreateProduct = () => {
             <input type="file" accept="image/*" onChange={handleImageChange} />
             {previewImage && (
               <div className="image-preview">
-                <img
-                  src={previewImage}
-                  alt="Preview"
-                  style={{ maxWidth: "200px", marginTop: "10px" }}
-                />
+                <img src={previewImage} alt="Preview" width={300} />
               </div>
             )}
           </label>
@@ -151,7 +109,6 @@ const CreateProduct = () => {
               disabled={isSubmitting}>
               {isSubmitting ? "Creating..." : "Create Product"}
             </button>
-
             <button
               type="button"
               className="cancel-button"

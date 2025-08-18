@@ -1,74 +1,27 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../../components/sidebar/Sidebar";
+import useProducts from "../../../hooks/product/UseProducts";
+import { deleteProduct } from "../../../services/ProductService";
 import "./productmanage.css";
 
 const ProductManage = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { products, loading, error, fetchProducts } = useProducts();
   const navigate = useNavigate();
 
-  const getProducts = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("accessToken");
-
-      const response = await axios.get("http://localhost:5000/api/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const productList = response.data.product;
-
-      if (Array.isArray(productList)) {
-        setProducts(productList);
-        setError(null);
-      } else {
-        throw new Error("Invalid data format received");
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          err.response?.data?.message ||
-          "Failed to load products. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getProducts();
-  }, []);
-
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this product and its image permanently?")) {
-      return;
-    }
-    const token = localStorage.getItem("accessToken");
+    const confirmDelete = window.confirm(
+      "Delete this product and its image permanently?"
+    );
+    if (!confirmDelete) return;
 
     try {
-      const response = await axios.delete(
-        `http://localhost:5000/api/products/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        await getProducts();
-        alert("Product deleted successfully");
-      } else {
-        throw new Error(response.data.error || "Delete failed");
-      }
+      await deleteProduct(id);
+      alert("Product deleted successfully");
+      fetchProducts();
     } catch (err) {
+      alert(err.message || "Delete failed");
       console.error("Delete error:", err);
-      alert(err.response?.data?.error || err.message || "Delete failed");
     }
   };
 
@@ -86,7 +39,6 @@ const ProductManage = () => {
         </div>
 
         {error && <div className="error-message">{error}</div>}
-
         {loading ? (
           <div className="loading">Loading products...</div>
         ) : (
@@ -94,7 +46,7 @@ const ProductManage = () => {
             <table className="product-table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>#</th>
                   <th>Name</th>
                   <th>Price</th>
                   <th>Description</th>

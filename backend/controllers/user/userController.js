@@ -1,32 +1,5 @@
 const pool = require("../../config/db");
 
-const getMyProfile = async (req, res) => {
-  try {
-    const [users] = await pool.execute(
-      "SELECT id, username, email, created_at FROM users WHERE id = ?",
-      [req.user.id]
-    );
-
-    if (users.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      user: users[0],
-    });
-  } catch (error) {
-    console.error("Get profile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch profile",
-    });
-  }
-};
-
 const updateMyProfile = async (req, res) => {
   try {
     const { username, email } = req.body;
@@ -78,6 +51,5 @@ const updateMyProfile = async (req, res) => {
 };
 
 module.exports = {
-  getMyProfile,
   updateMyProfile,
 };

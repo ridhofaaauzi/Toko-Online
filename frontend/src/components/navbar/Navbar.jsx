@@ -1,86 +1,36 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useAuth } from "../../hooks/auth/UseAuth";
+import { useDropdown } from "../../hooks/UseDropdown";
+import DropdownMenu from "./DropdownMenu";
 import "./Navbar.css";
 
 const Navbar = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef(null);
+  const { isLoggedIn, logout } = useAuth();
+  const { ref, isOpen, toggle, close } = useDropdown();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    setIsLoggedIn(!!token);
-
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    setIsLoggedIn(false);
+    logout();
     navigate("/login");
-  };
-
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
   };
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
+        <Link to="/profile" className="navbar-logo">
           Online Shop
         </Link>
-        <ul className="nav-menu">
-          <li className="nav-item">
-            <Link to="/" className="nav-links">
-              Home
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/product" className="nav-links">
-              Product
-            </Link>
-          </li>
-        </ul>
         <div className="nav-buttons">
           {isLoggedIn ? (
-            <div className="dropdown-container" ref={dropdownRef}>
-              <button onClick={toggleDropdown} className="profile-button">
+            <div className="dropdown-container" ref={ref}>
+              <button onClick={toggle} className="profile-button">
                 My Profile
-                <span
-                  className={`dropdown-arrow ${showDropdown ? "open" : ""}`}>
+                <span className={`dropdown-arrow ${isOpen ? "open" : ""}`}>
                   ▼
                 </span>
               </button>
-              {showDropdown && (
-                <div className="dropdown-menu">
-                  <Link
-                    to="/dashboard"
-                    className="dropdown-item"
-                    onClick={() => setShowDropdown(false)}>
-                    Dashboard
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className="dropdown-item"
-                    onClick={() => setShowDropdown(false)}>
-                    View Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="dropdown-item logout">
-                    Logout
-                  </button>
-                </div>
+              {isOpen && (
+                <DropdownMenu onLogout={handleLogout} onClose={close} />
               )}
             </div>
           ) : (

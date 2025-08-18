@@ -1,22 +1,21 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import AuthForm from "./components/auth/AuthForm";
+import AuthForm from "./components/auth/auth-form/AuthForm";
 import Profile from "./pages/profile/Profile";
-import Home from "./pages/Home";
-import EditProfile from "./pages/profile/EditProfile";
-import ProductList from "./pages/product/ProductList";
+import EditProfile from "./pages/profile/edit/EditProfile";
 import Dashboard from "./pages/dashboard/Dashboard";
 import ProductManage from "./pages/dashboard/product_manage/ProductManage";
-import CreateProduct from "./pages/dashboard/product_manage/CreateProduct";
-import EditProduct from "./pages/dashboard/product_manage/EditProduct";
+import CreateProduct from "./pages/dashboard/product_manage/create/CreateProduct";
+import EditProduct from "./pages/dashboard/product_manage/edit/EditProduct";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import ForgotPassword from "./components/auth/ForgotPassword";
-import ResetPassword from "./components/auth/ResetPassword";
+import ForgotPassword from "./components/auth/forgot-password/ForgotPassword";
+import ResetPassword from "./components/auth/reset-password/ResetPassword";
+import NotFound from "./pages/notfound/NotFound";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
         <Route path="/login" element={<AuthForm isLogin={true} />} />
         <Route path="/register" element={<AuthForm isLogin={false} />} />
         <Route
@@ -28,7 +27,6 @@ function App() {
           }
         />
         <Route path="/profile/edit" element={<EditProfile />} />
-        <Route path="/product" element={<ProductList />} />
         <Route
           path="/dashboard"
           element={

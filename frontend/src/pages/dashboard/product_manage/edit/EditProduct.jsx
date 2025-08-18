@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import Sidebar from "../../../components/sidebar/Sidebar";
+import Sidebar from "../../../../components/sidebar/Sidebar";
+import {
+  getProductById,
+  updateProduct,
+  uploadImage,
+} from "../../../../services/ProductService";
 import "./EditProduct.css";
 
 const EditProduct = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: "",
     price: "",
@@ -13,86 +19,62 @@ const EditProduct = () => {
     image: null,
     existingImageUrl: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
-  const navigate = useNavigate();
-
-  const token = localStorage.getItem("accessToken");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/api/products/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const product = response.data.product;
-        const imageUrl = product.image_url
-          ? `http://localhost:5000/public${product.image_url}`
-          : "";
-
+        const product = await getProductById(id);
         setFormData({
           name: product.name || "",
-          price:
-            product.price % 1 === 0
-              ? product.price.toString().replace(/\.0+$/, "")
-              : product.price,
+          // Format price tanpa desimal jika tidak perlu
+          price: product.price
+            ? product.price.toString().replace(/\.\d{2}$/, "")
+            : "",
           description: product.description || "",
           image: null,
           existingImageUrl: product.image_url || "",
         });
-
-        setPreviewImage(imageUrl);
+        setPreviewImage(
+          product.image_url
+            ? `http://localhost:5000/public${product.image_url}`
+            : null
+        );
       } catch (err) {
-        console.error("Error fetching product:", err);
-
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("accessToken");
-          navigate("/login");
-        } else {
-          setError("Failed to load product data");
-        }
+        console.error(err);
+        setError("Failed to load product data");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProduct();
-  }, [id, token, navigate]);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const processedValue =
-      name === "price" ? value.replace(/\.0+$/, "") : value;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: processedValue,
-    }));
+    if (name === "price") {
+      // Hanya mengizinkan angka, tanpa koma atau titik
+      const numericValue = value.replace(/[^0-9]/g, "");
+      setFormData((prev) => ({ ...prev, [name]: numericValue }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        image: file,
-        existingImageUrl: "",
-      }));
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    setFormData((prev) => ({ ...prev, image: file, existingImageUrl: "" }));
+
+    const reader = new FileReader();
+    reader.onloadend = () => setPreviewImage(reader.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -101,56 +83,23 @@ const EditProduct = () => {
     setError(null);
 
     try {
-      const productData = {
+      let updatedData = {
         name: formData.name,
-        price: parseFloat(formData.price),
+        // Konversi ke number
+        price: parseInt(formData.price, 10),
         description: formData.description,
       };
 
       if (formData.image) {
-        const uploadFormData = new FormData();
-        uploadFormData.append("image", formData.image);
-
-        const uploadResponse = await axios.post(
-          "http://localhost:5000/api/upload",
-          uploadFormData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        productData.image_url = uploadResponse.data.imageUrl;
+        const image_url = await uploadImage(formData.image);
+        updatedData.image_url = image_url;
       }
 
-      const response = await axios.put(
-        `http://localhost:5000/api/products/${id}`,
-        productData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        navigate("/dashboard/products");
-      } else {
-        throw new Error(response.data.error || "Update failed");
-      }
+      await updateProduct(id, updatedData);
+      navigate("/dashboard/products");
     } catch (err) {
-      console.error("Update error:", err);
-
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        localStorage.removeItem("token");
-        navigate("/login");
-        return;
-      }
-
-      setError(err.response?.data?.error || err.message || "Update failed");
+      console.error(err);
+      setError(err.message || "Failed to update product");
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +122,6 @@ const EditProduct = () => {
       <div className="edit-product-content">
         <form className="product-form" onSubmit={handleSubmit}>
           <h2>Edit Product</h2>
-
           {error && <div className="error-message">{error}</div>}
 
           <label>
@@ -190,12 +138,12 @@ const EditProduct = () => {
           <label>
             Price
             <input
-              type="number"
+              type="text" // Ubah dari number ke text untuk kontrol lebih baik
               name="price"
               value={formData.price}
               onChange={handleChange}
               required
-              step="any"
+              inputMode="numeric" // Untuk keyboard numerik di mobile
             />
           </label>
 
@@ -221,7 +169,7 @@ const EditProduct = () => {
                     `http://localhost:5000/public${formData.existingImageUrl}`
                   }
                   alt="Preview"
-                  style={{ maxWidth: "200px", marginTop: "10px" }}
+                  width={300}
                 />
                 <p className="image-notice">
                   {formData.image
@@ -239,7 +187,6 @@ const EditProduct = () => {
               disabled={isSubmitting}>
               {isSubmitting ? "Updating..." : "Update Product"}
             </button>
-
             <button
               type="button"
               className="cancel-button"

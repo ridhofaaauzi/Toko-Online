@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const Sidebar = () => {
   return (
     <div className="sidebar-container">
-      <Link to="/" className="sidebar-title">
+      <Link to="/profile" className="sidebar-title">
         My Dashboard
       </Link>
       <ul className="sidebar-list">

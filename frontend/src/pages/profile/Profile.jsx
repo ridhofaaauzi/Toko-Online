@@ -1,45 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import api from "../../utils/api";
+import React from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
+import useProfile from "../../hooks/profile/UseProfile";
 import "./Profile.css";
 
 const Profile = () => {
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get("/auth/profile");
-
-        if (response.data?.user) {
-          setUser(response.data.user);
-        } else {
-          throw new Error("Invalid user data structure");
-        }
-      } catch (err) {
-        const errorMessage =
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to load profile";
-
-        if (err.response?.status === 401) {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-          navigate("/login", { replace: true });
-        } else {
-          setError(errorMessage);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [navigate]);
+  const { user, loading, error } = useProfile();
 
   if (loading)
     return (
@@ -65,6 +31,8 @@ const Profile = () => {
       </div>
     );
 
+  const { username, email, created_at, name } = user;
+
   return (
     <div className="profile-page">
       <Navbar />
@@ -73,31 +41,20 @@ const Profile = () => {
           <div className="profile-header">
             <h2 className="profile-title">User Profile</h2>
             <div className="profile-avatar">
-              {user.username?.charAt(0).toUpperCase() || "U"}
+              {username?.charAt(0).toUpperCase() || "U"}
             </div>
           </div>
+
           <div className="profile-details">
-            <div className="detail-item">
-              <span className="detail-label">Username:</span>
-              <span className="detail-value">{user.username || "N/A"}</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Email:</span>
-              <span className="detail-value">{user.email || "N/A"}</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Member Since:</span>
-              <span className="detail-value">
-                {new Date(user.created_at).toLocaleDateString()}
-              </span>
-            </div>
-            {user.name && (
-              <div className="detail-item">
-                <span className="detail-label">Name:</span>
-                <span className="detail-value">{user.name}</span>
-              </div>
-            )}
+            <Detail label="Username" value={username} />
+            <Detail label="Email" value={email} />
+            <Detail
+              label="Member Since"
+              value={new Date(created_at).toLocaleDateString()}
+            />
+            {name && <Detail label="Name" value={name} />}
           </div>
+
           <Link to="/profile/edit" className="edit-profile-btn">
             Edit Profile
           </Link>
@@ -108,3 +65,10 @@ const Profile = () => {
 };
 
 export default Profile;
+
+const Detail = ({ label, value }) => (
+  <div className="detail-item">
+    <span className="detail-label">{label}:</span>
+    <span className="detail-value">{value || "N/A"}</span>
+  </div>
+);

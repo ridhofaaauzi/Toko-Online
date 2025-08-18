@@ -10,17 +10,18 @@ const authenticateToken = (req, res, next) => {
   if (!token) {
     return res.status(401).json({
       success: false,
-      error: "Akses ditolak. Token diperlukan.",
+      message: "Access token required",
     });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
-        error: "Token tidak valid atau kadaluarsa.",
+        message: "Access token expired",
       });
     }
+
     req.user = user;
     next();
   });
