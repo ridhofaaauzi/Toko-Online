@@ -17,7 +17,7 @@ export const useAuthForm = (isLogin) => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { countdown, setCountdown, disabled } = useCountdown(0);
+  const { countdown, startCountdown, disabled } = useCountdown();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -48,6 +48,7 @@ export const useAuthForm = (isLogin) => {
       if (data.accessToken && data.refreshToken) {
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
+        localStorage.setItem("username", data.user.username);
         navigate("/profile", { replace: true });
       } else {
         setErrors((prev) => ({
@@ -57,7 +58,7 @@ export const useAuthForm = (isLogin) => {
       }
     } catch (error) {
       handleError(error, setErrors);
-      setCountdown(10);
+      startCountdown(10);
     } finally {
       setIsSubmitting(false);
     }

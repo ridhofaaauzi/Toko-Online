@@ -3,6 +3,13 @@
   min-height: 100vh;
 }
 
+.product-thumbnail {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
 .product-manage-content {
   flex: 1;
   padding: 2rem;
@@ -93,7 +100,7 @@
   color: #888;
 }
 
-.edit-btn, .delete-btn {
+.edit-btn, .delete-btn, .qrcode-btn {
   padding: 0.5rem 0.75rem;
   margin-right: 0.5rem;
   border: none;
@@ -104,12 +111,8 @@
 }
 
 .edit-btn {
-  background-color: #2196F3;
+  background-color: #ffd700;
   color: white;
-}
-
-.edit-btn:hover {
-  background-color: #0b7dda;
 }
 
 .delete-btn {
@@ -117,6 +120,41 @@
   color: white;
 }
 
-.delete-btn:hover {
-  background-color: #d32f2f;
+.qrcode-btn{
+  background-color: #0b7dda;
+  color: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.modal .qrcode-container {
+  display: flex;
+  justify-content: center;
+}
+
+.close-btn {
+  background: #e63946;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
 }

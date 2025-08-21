@@ -12,6 +12,8 @@ export const useGoogleAuth = () => {
         { withCredentials: true }
       );
       localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("username", data.user.username);
       navigate("/profile");
     } catch (error) {
       console.error("Google login failed:", error);

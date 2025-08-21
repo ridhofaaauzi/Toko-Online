@@ -10,6 +10,8 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import ForgotPassword from "./components/auth/forgot-password/ForgotPassword";
 import ResetPassword from "./components/auth/reset-password/ResetPassword";
 import NotFound from "./pages/notfound/NotFound";
+import ChatPage from "./pages/chat/ChatPage";
+import ChatWidget from "./components/chat/ChatWidget";
 
 function App() {
   return (
@@ -62,6 +64,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
+      <ChatWidget />
     </Router>
   );
 }

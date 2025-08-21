@@ -11,6 +11,7 @@ export const useAuth = () => {
   const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("username");
     setIsLoggedIn(false);
   };
 

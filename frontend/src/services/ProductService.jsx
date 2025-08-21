@@ -77,3 +77,11 @@ export const deleteProduct = async (id) => {
     throw new Error(data.error || "Delete failed");
   }
 };
+
+export const getProductQRCode = async (id) => {
+  const { data } = await axios.get(
+    `http://localhost:5000/api/products/${id}/qrcode`,
+    { headers: { Authorization: `Bearer ${token()}` } }
+  );
+  return data.qrCode;
+};

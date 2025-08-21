@@ -26,11 +26,6 @@ const authController = {
         return res.status(400).json({
           success: false,
           message: "All fields are required",
-          missing: {
-            username: !username,
-            email: !email,
-            password: !password,
-          },
         });
       }
 
@@ -38,7 +33,6 @@ const authController = {
         return res.status(400).json({
           success: false,
           message: "Invalid email format",
-          errors: { email: "Please enter a valid email" },
         });
       }
 
@@ -52,15 +46,9 @@ const authController = {
       );
 
       if (existingEmail.length > 0 || existingUsername.length > 0) {
-        const errors = {};
-        if (existingEmail.length > 0) errors.email = "Email already in use";
-        if (existingUsername.length > 0)
-          errors.username = "Username already taken";
-
         return res.status(409).json({
           success: false,
           message: "User already exists",
-          errors,
         });
       }
 
@@ -72,25 +60,27 @@ const authController = {
         [username, email, hashedPassword]
       );
 
-      const token = jwt.generateToken({ id: result.insertId });
-
       const [user] = await pool.execute(
         "SELECT id, username, email, created_at FROM users WHERE id = ?",
         [result.insertId]
       );
 
+      const payload = { id: result.insertId, email, username };
+      const accessToken = jwt.generateAccessToken(payload);
+      const refreshToken = jwt.generateRefreshToken(payload);
+
       return res.status(201).json({
         success: true,
         message: "Registration successful",
         user: user[0],
-        token,
+        accessToken,
+        refreshToken,
       });
     } catch (error) {
+      console.error("REGISTER ERROR:", error);
       return res.status(500).json({
         success: false,
         message: "Registration failed",
-        error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   },
@@ -128,8 +118,14 @@ const authController = {
         });
       }
 
-      const accessToken = jwt.generateAccessToken({ id: user.id });
-      const refreshToken = jwt.generateRefreshToken({ id: user.id });
+      const payload = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      };
+
+      const accessToken = jwt.generateAccessToken(payload);
+      const refreshToken = jwt.generateRefreshToken(payload);
 
       await redisClient.set(`refreshToken:${user.id}`, refreshToken, {
         EX: 7 * 24 * 60 * 60,

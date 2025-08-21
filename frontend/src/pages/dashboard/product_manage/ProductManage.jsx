@@ -1,27 +1,44 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../../components/sidebar/Sidebar";
 import useProducts from "../../../hooks/product/UseProducts";
-import { deleteProduct } from "../../../services/ProductService";
+import {
+  deleteProduct,
+  getProductQRCode,
+} from "../../../services/ProductService";
+import ProductTableRow from "./components/ProductTableRow";
+import QRCodeModal from "./components/QRCodeModa";
 import "./productmanage.css";
 
 const ProductManage = () => {
   const { products, loading, error, fetchProducts } = useProducts();
   const navigate = useNavigate();
 
+  const [qrCode, setQrCode] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Delete this product and its image permanently?"
-    );
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this product and its image permanently?"))
+      return;
 
     try {
       await deleteProduct(id);
       alert("Product deleted successfully");
       fetchProducts();
     } catch (err) {
-      alert(err.message || "Delete failed");
       console.error("Delete error:", err);
+      alert(err.message || "Delete failed");
+    }
+  };
+
+  const handleShowQRCode = async (id) => {
+    try {
+      const qr = await getProductQRCode(id);
+      setQrCode(qr);
+      setShowModal(true);
+    } catch (err) {
+      console.error("Failed to get QRCode:", err);
+      alert("Failed to load QR Code");
     }
   };
 
@@ -57,44 +74,16 @@ const ProductManage = () => {
               <tbody>
                 {products.length > 0 ? (
                   products.map((product, index) => (
-                    <tr key={product.id}>
-                      <td>{index + 1}</td>
-                      <td>{product.name}</td>
-                      <td>Rp {Number(product.price).toLocaleString()}</td>
-                      <td className="description-cell">
-                        {product.description}
-                      </td>
-                      <td>
-                        {product.image_url ? (
-                          <img
-                            src={`http://localhost:5000/public${product.image_url}`}
-                            alt={product.name}
-                            style={{
-                              width: "100px",
-                              height: "100px",
-                              objectFit: "cover",
-                              borderRadius: "4px",
-                            }}
-                          />
-                        ) : (
-                          <div className="no-image">No Image</div>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          className="edit-btn"
-                          onClick={() =>
-                            navigate(`/dashboard/product/edit/${product.id}`)
-                          }>
-                          Edit
-                        </button>
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDelete(product.id)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+                    <ProductTableRow
+                      key={product.id}
+                      index={index}
+                      product={product}
+                      onDelete={handleDelete}
+                      onShowQRCode={handleShowQRCode}
+                      onEdit={() =>
+                        navigate(`/dashboard/product/edit/${product.id}`)
+                      }
+                    />
                   ))
                 ) : (
                   <tr>
@@ -108,6 +97,12 @@ const ProductManage = () => {
           </div>
         )}
       </div>
+
+      <QRCodeModal
+        show={showModal}
+        qrCode={qrCode}
+        onClose={() => setShowModal(false)}
+      />
     </div>
   );
 };
